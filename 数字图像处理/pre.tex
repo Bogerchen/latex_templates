@@ -1,0 +1,394 @@
+% Copyright 2004 by Till Tantau <tantau@users.sourceforge.net>.
+%
+% In principle, this file can be redistributed and/or modified under
+% the terms of the GNU Public License, version 2.
+%
+% However, this file is supposed to be a template to be modified
+% for your own needs. For this reason, if you use this file as a
+% template and not specifically distribute it as part of a another
+% package/program, I grant the extra permission to freely copy and
+% modify this file as you see fit and even to delete this copyright
+% notice.
+
+\documentclass{beamer}
+
+% There are many different themes available for Beamer. A comprehensive
+% list with examples is given here:
+% http://deic.uab.es/~iblanes/beamer_gallery/index_by_theme.html
+% You can uncomment the themes below if you would like to use a different
+% one:
+%\usetheme{AnnArbor}
+%\usetheme{Antibes}
+%\usetheme{Bergen}
+%\usetheme{Berkeley}
+%\usetheme{Berlin}
+%\usetheme{Boadilla}
+%\usetheme{boxes}
+%\usetheme{CambridgeUS}
+%\usetheme{Copenhagen}
+\usetheme{Darmstadt}
+%\usetheme{default}
+%\usetheme{Frankfurt}
+%\usetheme{Goettingen}
+%\usetheme{Hannover}
+%\usetheme{Ilmenau}
+%\usetheme{JuanLesPins}
+%\usetheme{Luebeck}
+%\usetheme{Madrid}
+%\usetheme{Malmoe}
+%\usetheme{Marburg}
+%\usetheme{Montpellier}
+%\usetheme{PaloAlto}
+%\usetheme{Pittsburgh}
+%\usetheme{Rochester}
+%\usetheme{Singapore}
+%\usetheme{Szeged}
+%\usetheme{Warsaw}
+
+\usepackage{graphicx}  % 插图宏包
+\usepackage{multicol}  % 一张slide插入多张图 或 插入表格时用到的\multicol命令
+\usepackage{multirow}  % 一张slide插入多张图 或 插入表格时用到的\multirow命令
+\setbeamertemplate{caption}[numbered]{}  % 图片标题序号
+\usepackage{caption}   % 设置图片标题字体大小
+\usepackage{comment}   % 大块注释
+\usepackage{CJKutf8}   % 输入中文
+\usepackage{ctex}
+
+\title{Segmenting a Low-Depth-of-Field Image Using Morphological Filters and Region Merging}
+
+% A subtitle is optional and this may be deleted
+%\subtitle{Optional Subtitle}
+
+\author{陈承勃}
+% - Give the names in the same order as the appear in the paper.
+% - Use the \inst{?} command only if the authors have different
+%   affiliation.
+
+\institute[Sun Yat-sen University] % (optional, but mostly needed)
+{
+  Sun Yat-sen University
+    \begin{figure}
+    \includegraphics[width=2cm]{0}
+    %\captionsetup{font={scriptsize}}
+    %\caption[4]{YOLOv3 architecture}
+  \end{figure}
+}
+% - Use the \inst command only if there are several affiliations.
+% - Keep it simple, no one is interested in your street address.
+
+\date{Nov 20th, 2018}
+
+%\date{Conference Name, 2013}
+% - Either use conference name or its abbreviation.
+% - Not really informative to the audience, more for people (including
+%   yourself) who are reading the slides online
+
+\subject{Theoretical Computer Science}
+% This is only inserted into the PDF information catalog. Can be left
+% out.
+
+% If you have a file called "university-logo-filename.xxx", where xxx
+% is a graphic format that can be processed by latex or pdflatex,
+% resp., then you can add a logo as follows:
+
+% \pgfdeclareimage[height=0.5cm]{university-logo}{university-logo-filename}
+% \logo{\pgfuseimage{university-logo}}
+
+% Delete this, if you do not want the table of contents to pop up at
+% the beginning of each subsection:
+\AtBeginSubsection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+% Let's get started
+\begin{document}
+%\begin{CJK*}{UTF8}{song}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+  % You might wish to add the option [pausesections]
+\end{frame}
+
+%\begin{CJK}{UTF8}{song}
+
+\section{Introduction}
+\subsection{Definition of Low-Depth-of-Field(DOF)}
+\begin{frame}{Definition of Low-Depth-of-Field(DOF)}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=8cm]{1}\\
+      \captionsetup{font={scriptsize}}
+      \caption{Optical geometry of a typical camera.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Examples of Low DOF Images}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=10cm]{3}\\
+      \captionsetup{font={scriptsize}}
+      \caption{Low-DOF images.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Examples of Low DOF Images}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=4.5cm]{2}\\
+      \captionsetup{font={scriptsize}}
+      \caption{A color image.}
+    \end{figure}
+\end{frame}
+
+\subsection{Task Description}
+\begin{frame}{Task Description}
+Partion an image with low depth-of-field (DOF) into focused object-of-interest (OOI) and defocused background.
+\begin{multicols}{2}
+\begin{figure}[1]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=3cm]{4-2}\\
+  \captionsetup{font={scriptsize}}
+  \caption{Original Low-DOF image}
+\end{figure}
+\columnbreak
+\begin{figure}[2]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=3cm]{4-1}\\
+  \captionsetup{font={scriptsize}}
+  \caption{Focused OOI}
+\end{figure}
+\end{multicols}
+\end{frame}
+
+\subsection{Motivation}
+\begin{frame}{Related Works}
+Two approaches to segmentation of low-DOF images:
+\begin{itemize}
+  \item {
+    Edge-based approaches
+    \begin{itemize}
+      \item extract boundary of the object by measuring the amount of defocus at each edge pixel.
+      \item defect: fail to detect boundary edges of the natural object.
+    \end{itemize}
+    } 
+  \item {
+    Region-based approaches
+    \begin{itemize}
+      \item exploit high frequency areas in the image.
+      \item defect: high-frequency components in defocused regions and nearly constant gray levels in focused regions.
+    \end{itemize}
+    }
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Examples of errors}
+  \begin{figure}[h]
+    \begin{center}$
+    \begin{array}{cc}
+    \includegraphics[width=3.5cm]{5-1} &
+    \includegraphics[width=3.5cm]{5-2}
+    \end{array}$
+    \end{center}
+    \captionsetup{font={scriptsize}}
+    \caption{An example of error}
+  \end{figure}
+  
+    \begin{figure}[h]
+    \begin{center}$
+    \begin{array}{cc}
+    \includegraphics[width=3.5cm]{6-1} &
+    \includegraphics[width=3.5cm]{6-2}
+    \end{array}$
+    \end{center}
+    \captionsetup{font={scriptsize}}
+    \caption{An example of error}
+  \end{figure}
+\end{frame}
+
+\section{Methodology}
+\begin{frame}{Methodology}
+Proposed algorithm:
+\begin{itemize}
+  \item \textbf{step 1}: Feature space transformation using HOS (higher order statistics)
+  \item \textbf{step 2}: Morphological filtering by reconstruction
+  \item \textbf{step 3}: Region merging and adaptive thresholding
+\end{itemize}
+\end{frame}
+
+\subsection{Feature Space Transformation Using HOS}
+\begin{frame}{Feature Space Transformation Using HOS}
+HOS (Higher Order of Statistics) can suppress Gaussian noise and preserve some of the non-Gaussian information.
+The fourth-order moment:
+\begin{equation}
+\hat{m}^{(4)}(x,y) = \frac{1}{N_\eta}\sum_{(s,t)\in \eta(x,y)}(I(s,t)-\hat{m}(x,y))^4
+\end{equation}
+HOS map: each pixel is limited to $[0,255]$
+\begin{equation}
+HOS(x,y)=min(255,\frac{\hat{m}^{(4)}(x,y)}{DSF})
+\end{equation}
+\end{frame}
+
+\begin{frame}{An example of HOS map}
+HOS map yields denser and higher values in the focus areas, suppressing noise in the focused regions.
+  \begin{figure}[h]
+    \begin{center}$
+    \begin{array}{cc}
+    \includegraphics[width=4.5cm]{7-1} &
+    \includegraphics[width=4.5cm]{7-2}
+    \end{array}$
+    \end{center}
+    \captionsetup{font={scriptsize}}
+    \caption{Feature space transformed by (a) local variance (b) higher order statistics.}
+  \end{figure}
+Notice that small dark and bright patches in focused and defocused regions, respectively.
+\end{frame}
+
+\subsection{HOS Map Simplification by Morphological Filtering by Reconstruction}
+\begin{frame}{Morphological filtering}
+\begin{itemize}[<+->]
+  \item Let B denote a window or flat structuring element.
+  \item Erosion: $\epsilon_B(O)$, dilation: $\delta_B(O)$
+  \item Opening operator $\gamma_B(O)=\delta_B(\epsilon_B(O))$ removes \textbf{bright} components that do not fit within the structuring element B.
+  \item Closing operator $\psi_B(O)=\epsilon_B(\delta_B(O))$ removes \textbf{dark} components that do not fit within the structuring element B.
+  \item Disadvantage: do not allow a perfect preservation of contour information.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Proposed morphological operators}
+\begin{itemize}[<+->]
+  \item Erosion: $\epsilon^{(1)}(O,O_R)(x,y)=max\{\epsilon_B(O)(x,y),O_R(x,y)\}$
+  \item Dilation: $\delta^{(1)}(O,O_R)(x,y)=min\{\delta_B(O)(x,y),O_R(x,y)\}$
+  \item Reconstruction by erosion:
+  $\psi^{(rec)}(O,O_R)=\epsilon^{(\infty)}(O,O_R)=\epsilon^{(1)}\circ \epsilon^{(1)}\circ \cdots \circ \epsilon^{(1)}(O,O_R)$
+  \item Reconstruction by dilation:
+  $\gamma^{(rec)}(O,O_R)=\delta^{(\infty)}(O,O_R)=\delta^{(1)}\circ \delta^{(1)}\circ \cdots \circ \delta^{(1)}(O,O_R)$
+  \item Opening by reconstruction: $\gamma^{(rec)}(\epsilon_B(O),O)$
+  \item Closing by reconstruction: $\psi^{(rec)}(\delta_B(O),O)$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{HOS Map Simplification by proposed morphological operators}
+Employ morphological closing-opening by reconstruction.
+Strength:
+\begin{itemize}
+  \item Fills small dark holes
+  \item Removes small bright patches.
+  \item perfectly preserving other components and their contours.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{An example of HOS map simplification}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=8cm]{8}\\
+      \captionsetup{font={scriptsize}}
+      \caption{(a) Low-DOF image. (b) HOS map. (c) Simplified image. }
+    \end{figure}
+\end{frame}
+
+\subsection{Region Merging and Adaptive Thresholding}
+\begin{frame}{Region Merging}
+\begin{itemize}
+  \item Typical morphological segmentation techniques: marker extraction and watershed algorithm.
+  \item In this task, extract focused region (OOI) rather than partitioning.\\
+  Suppose OOI of an image is defined as:
+  \begin{equation}
+    OOI = \bigcup^{N_{OOI}}_{i=1}=R_i
+  \end{equation}
+  Iteratively assign $R_i$ to $OOI$ or $OOI^c$ based on $\frac{p(nob_i|OOI)}{p(nob_i|OOI^c)}$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Schematic diagram of Region Merging}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=6.5cm]{9}\\
+      \captionsetup{font={scriptsize}}
+      \caption{Evolution of $OOI$ by the proposed region merging. (a) Initial $OOI$ and three uncertain regions with pixel values $(T_L;v_h )$ in the simplified HOS map.(b)$R_i$ is merged into $OOI$. (c) Final $OOI$, after $R_j$ is merged into $OOI$. Note that $R_k$ is not decided as $OOI$ since it has a value less than that of $OOI_2$.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{An Example of Region Merging}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=10cm]{10}\\
+      \captionsetup{font={scriptsize}}
+      \caption{Pictorial illustration of the proposed algorithm. (a) Low-DOF image. (b) HOS map. (c) Simplified image. (d) Region merging. (e) Final decision by thresholding.}
+    \end{figure}
+\end{frame}
+
+\section{Experiments}
+\begin{frame}{Experiment results from each process}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=6.5cm]{11}\\
+      \captionsetup{font={scriptsize}}
+      \caption{Experimental results from each process. (a) Low-DOF image. (b) HOS map. (c) Simplified image. (d) Region merging. (e) Final decision by thresholding.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Visual Comparison of Segmentation Results}
+    \begin{figure}
+      \centering
+      % Requires \usepackage{graphicx}
+      \includegraphics[width=10cm]{12}\\
+      \captionsetup{font={scriptsize}}
+      \caption{Visual comparison of segmentation results. (a) Low-DOF images. (b) Results from [2]. (c) Results from [8]. (d) Results from [9]. (e) Results from the proposed algorithm. (f) References by human manual segmentation.}
+    \end{figure}
+\end{frame}
+
+\section{Conclusion}
+\begin{frame}{Conclusion}
+Proposed algorithm to extract object-of-image (OOI):
+\begin{itemize}
+  \item Transformation using higher order of statistics (HOS)
+  \item Morphological filtering by reconstruction
+  \item Region merging and adaptive thresholding
+\end{itemize}
+\end{frame}
+
+% All of the following is optional and typically not needed.
+\appendix
+\section<presentation>*{\appendixname}
+\subsection<presentation>*{Bibliography}
+
+\begin{frame}[allowframebreaks]
+  \frametitle<presentation>{Bibliography}
+
+  \begin{thebibliography}{10}
+
+%  \beamertemplatebookbibitems
+  % Start with overview books.
+
+  \bibitem{Kim2005}
+    Changick Kim.
+    \newblock {\em Segmenting a Low-Depth-of-Field Image Using Morphological Filters and Region Merging}.
+    \newblock {\em IEEE TRANSACTIONS ON IMAGE PROCESSING, VOL. 14, NO. 10, OCTOBER 2005.}
+
+  \beamertemplatearticlebibitems
+  % Followed by interesting articles. Keep the list short.
+
+
+  \end{thebibliography}
+\end{frame}
+
+%\end{CJK*}
+\end{document}
+
+
